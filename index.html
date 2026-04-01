@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jonathan's Daily Tracker — Esam Boktor Insurance Agency</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --red:#CC0000;--red-dark:#a30000;--red-light:#fdf0f0;
+  --blue:#003DA5;--blue-dark:#002d7a;--blue-light:#eef2fb;--blue-mid:#b3c6ee;
+  --green:#22a55e;--green-light:#e6f7ef;
+  --bg:#f4f5f8;--surface:#fff;--surface2:#f0f2f7;
+  --border:rgba(0,0,0,0.10);--text:#1a1a1a;--muted:#6b7280;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.nav{background:var(--blue);color:#fff;padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.nav-left{display:flex;align-items:center;gap:12px;}
+.nav-stripe{width:5px;height:36px;background:var(--red);border-radius:3px;flex-shrink:0;}
+.nav-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;letter-spacing:-0.3px;}
+.nav-sub{font-size:11px;opacity:0.75;margin-top:2px;}
+.nav-date{font-size:12px;opacity:0.85;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;}
+
+.app{max-width:700px;margin:0 auto;padding:1.25rem 1rem 3rem;}
+
+/* SCORE CARD */
+.score-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem;margin-bottom:1.25rem;border-left:4px solid var(--red);}
+.score-top{display:flex;align-items:center;gap:1.25rem;margin-bottom:1rem;}
+.score-ring{position:relative;width:76px;height:76px;flex-shrink:0;}
+.score-ring svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:#dde6f8;stroke-width:7;}
+.ring-fill{fill:none;stroke:var(--blue);stroke-width:7;stroke-linecap:round;stroke-dasharray:201;stroke-dashoffset:201;transition:stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1),stroke 0.3s;}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-pct{font-size:17px;font-weight:600;line-height:1;}
+.ring-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.score-info{flex:1;}
+.score-info h2{font-size:15px;font-weight:500;margin-bottom:4px;}
+.score-info p{font-size:12px;color:var(--muted);}
+
+/* COMPACT STATS */
+.stats-divider{height:1px;background:var(--border);margin-bottom:10px;}
+.stats-period{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.stats-period-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;}
+.stats-period-line{flex:1;height:1px;background:var(--border);}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.stat-pill{background:var(--surface2);border-radius:8px;padding:7px 8px;text-align:center;}
+.stat-pill-val{font-size:16px;font-weight:600;color:var(--blue);line-height:1;}
+.stat-pill-label{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2;}
+.stats-row.week .stat-pill-val{font-size:15px;color:var(--muted);font-weight:500;}
+
+/* SECTION LABEL */
+.section-label{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0.9px;text-transform:uppercase;margin-bottom:0.6rem;margin-top:1.25rem;}
+
+/* BLOCK */
+.block{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;border:1.5px solid transparent;transition:border-color 0.3s;}
+.block.done{border-color:var(--green);}
+.block-header{display:flex;align-items:center;gap:12px;padding:0.9rem 1rem;cursor:pointer;user-select:none;}
+.block-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.block-info{flex:1;}
+.block-name{font-size:14px;font-weight:500;}
+.block-time{font-size:11px;color:var(--muted);margin-top:1px;}
+.block-badge{font-size:11px;color:var(--muted);background:var(--surface2);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.block.done .block-badge{background:var(--green-light);color:var(--green);}
+.chevron{width:18px;height:18px;color:var(--muted);transition:transform 0.25s;flex-shrink:0;}
+.block.open>.block-header .chevron{transform:rotate(180deg);}
+.block-body{display:none;padding:0 1rem 1rem;}
+.block.open>.block-body{display:block;}
+.divider{height:1px;background:var(--border);margin-bottom:1rem;}
+
+/* BUTTONS */
+.complete-btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:9px;padding:11px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:10px;transition:background 0.15s,transform 0.12s;}
+.complete-btn:hover{background:var(--blue-dark);}
+.complete-btn:active{transform:scale(0.98);}
+.complete-btn.is-done{background:var(--green);}
+.complete-btn.is-done:hover{background:#1a8a4e;}
+.add-btn{width:100%;background:none;border:1.5px dashed var(--blue-mid);color:var(--blue);border-radius:8px;padding:8px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.15s;margin-top:4px;}
+.add-btn:hover{background:var(--blue-light);}
+
+/* EXPORT BTN */
+.export-btn{width:100%;background:#e05555;color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:1.5rem;transition:background 0.15s,transform 0.12s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.export-btn:hover{background:#c94444;}
+.export-btn:active{transform:scale(0.98);}
+
+/* CHECKBOX */
+.chk{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.22s cubic-bezier(.34,1.56,.64,1);}
+.chk:hover{border-color:var(--green);background:var(--green-light);}
+.chk.checked{background:var(--green);border-color:var(--green);transform:scale(1.15);animation:chkpop 0.35s cubic-bezier(.34,1.56,.64,1);}
+.chk svg{opacity:0;transition:opacity 0.15s;}
+.chk.checked svg{opacity:1;}
+@keyframes chkpop{0%{transform:scale(1);}50%{transform:scale(1.35);}100%{transform:scale(1.15);}}
+.row-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:17px;line-height:1;padding:2px 5px;border-radius:4px;flex-shrink:0;transition:color 0.15s;}
+.row-del:hover{color:var(--red);}
+
+/* EMAIL ITEMS */
+.email-item{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;}
+.email-item:focus-within{border-color:var(--blue);}
+.email-top{display:flex;align-items:center;gap:8px;}
+.email-top input{flex:1;border:none;background:transparent;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;}
+.email-top input::placeholder{color:#aab0bc;}
+.email-note-inp{width:100%;border:none;background:transparent;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--muted);outline:none;resize:none;min-height:36px;line-height:1.5;margin-top:4px;}
+.email-note-inp::placeholder{color:#aab0bc;}
+
+/* ALERT ITEMS */
+.alert-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.alert-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;}
+.alert-row input:focus{border-color:var(--blue);background:#fff;}
+.alert-row input.done-input{text-decoration:line-through;color:var(--muted);}
+
+/* QUOTE CARDS */
+.quote-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;margin-bottom:7px;}
+.quote-card:focus-within{border-color:var(--blue);}
+.quote-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.quote-top input{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;}
+.quote-top input::placeholder{color:#aab0bc;}
+.quote-sub input{width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;margin-bottom:6px;}
+.quote-sub input:focus{border-color:var(--blue);}
+.quote-sub input::placeholder{color:#aab0bc;}
+.quote-notes{width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;resize:none;min-height:46px;line-height:1.5;}
+.quote-notes:focus{border-color:var(--blue);}
+.quote-notes::placeholder{color:#aab0bc;}
+
+/* FFR DAY FOLDERS */
+.ffr-day-wrap{margin-bottom:7px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ffr-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;user-select:none;background:var(--blue-light);}
+.ffr-day-hdr:hover{background:#dde6f8;}
+.ffr-day-left{display:flex;align-items:center;gap:8px;}
+.ffr-day-name{font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.7px;}
+.ffr-today-pill{font-size:10px;background:var(--red);color:#fff;padding:1px 7px;border-radius:20px;font-weight:500;}
+.ffr-day-right{display:flex;align-items:center;gap:8px;}
+.ffr-day-count{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-mid);padding:2px 9px;border-radius:20px;}
+.ffr-chev{width:15px;height:15px;color:var(--blue);transition:transform 0.22s;}
+.ffr-day-wrap.open .ffr-chev{transform:rotate(180deg);}
+.ffr-day-body{display:none;padding:8px 10px 10px;background:var(--surface2);}
+.ffr-day-wrap.open .ffr-day-body{display:block;}
+.ffr-rows{display:flex;flex-direction:column;gap:5px;margin-bottom:6px;}
+.ffr-row{display:flex;align-items:center;gap:7px;}
+.ffr-num{font-size:12px;font-weight:500;color:var(--muted);min-width:18px;text-align:right;flex-shrink:0;}
+.ffr-fields{display:flex;gap:5px;flex:1;}
+.ffr-fields input{border:1px solid var(--border);border-radius:7px;padding:7px 8px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;transition:border-color 0.15s,background 0.15s;}
+.ffr-fields input:focus{border-color:var(--blue);}
+.ffr-fields input::placeholder{color:#aab0bc;}
+.ffr-fields .f-name{flex:2;min-width:0;}
+.ffr-fields .f-date,.ffr-fields .f-time{flex:1;min-width:0;}
+.ffr-fields input.complete{background:var(--green-light);border-color:var(--green);color:#1a5c3a;}
+.ffr-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:2px 4px;border-radius:4px;flex-shrink:0;transition:color 0.15s;}
+.ffr-del:hover{color:var(--red);}
+
+/* NAME LIST */
+.name-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+.name-row{display:flex;align-items:center;gap:8px;}
+.name-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;}
+.name-row input:focus{border-color:var(--blue);background:#fff;}
+.name-row input::placeholder{color:#aab0bc;}
+
+/* COMPLETED FFRs */
+.comp-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;margin-bottom:7px;}
+.comp-card:focus-within{border-color:var(--blue);}
+.comp-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.comp-top input{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;}
+.comp-top input::placeholder{color:#aab0bc;}
+.comp-notes{width:100%;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;resize:vertical;min-height:64px;line-height:1.6;}
+.comp-notes:focus{border-color:var(--blue);}
+.comp-notes::placeholder{color:#aab0bc;}
+
+/* POLICIES BOUND */
+.policy-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;margin-bottom:7px;}
+.policy-card:focus-within{border-color:var(--blue);}
+.policy-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.policy-top input{flex:1;border:none;background:transparent;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;}
+.policy-top input::placeholder{color:#aab0bc;}
+.policy-type{width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:#fff;outline:none;}
+.policy-type:focus{border-color:var(--blue);}
+.policy-type::placeholder{color:#aab0bc;}
+
+/* HISTORY */
+.month-block{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;}
+.month-header{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1rem;cursor:pointer;user-select:none;background:var(--blue);color:#fff;}
+.month-header h3{font-size:14px;font-weight:500;}
+.month-chev{width:16px;height:16px;transition:transform 0.22s;}
+.month-block.open .month-chev{transform:rotate(180deg);}
+.month-body{display:none;padding:0.75rem 1rem;}
+.month-block.open .month-body{display:block;}
+.week-entry{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:4px;}
+.week-entry:hover{background:var(--blue-light);}
+.week-entry-label{font-size:13px;color:var(--text);}
+.week-entry-stats{font-size:11px;color:var(--muted);}
+.week-entry-arrow{font-size:14px;color:var(--muted);}
+.no-history{font-size:13px;color:var(--muted);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.modal{background:var(--surface);border-radius:var(--radius);max-width:600px;width:100%;max-height:80vh;overflow-y:auto;padding:1.5rem;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.modal-header h2{font-size:16px;font-weight:600;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;}
+.modal-close:hover{color:var(--red);}
+.report-section{margin-bottom:1.25rem;}
+.report-section h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.report-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.report-stat{background:var(--surface2);border-radius:8px;padding:8px 10px;}
+.report-stat-label{font-size:10px;color:var(--muted);}
+.report-stat-val{font-size:18px;font-weight:600;color:var(--blue);}
+.report-item{font-size:13px;color:var(--text);padding:4px 0;border-bottom:1px solid var(--border);}
+.report-item:last-child{border-bottom:none;}
+.report-item .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* CONFETTI */
+.confetti-anchor{position:relative;overflow:visible;}
+.c-dot{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;opacity:0;top:50%;left:50%;}
+@keyframes popanim{0%,100%{transform:none;}35%{transform:scale(1.03) rotate(-1deg);}70%{transform:scale(1.03) rotate(1deg);}}
+.popping{animation:popanim 0.4s ease;}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-left">
+    <div class="nav-stripe"></div>
+    <div>
+      <div class="nav-title">Jonathan's Daily Tracker</div>
+      <div class="nav-sub">Esam Boktor Insurance Agency</div>
+    </div>
+  </div>
+  <div class="nav-date" id="navDate"></div>
+</div>
+
+<div class="app">
+
+  <!-- SCORE CARD -->
+  <div class="score-card confetti-anchor" id="scoreCard">
+    <div class="score-top">
+      <div class="score-ring">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle class="ring-bg" cx="38" cy="38" r="32"/>
+          <circle class="ring-fill" id="ringFill" cx="38" cy="38" r="32"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-pct" id="ringPct">0%</div>
+          <div class="ring-lbl">today</div>
+        </div>
+      </div>
+      <div class="score-info">
+        <h2>Daily Productivity Score</h2>
+        <p>Auto-saves as you work. Resets every Monday.</p>
+      </div>
+    </div>
+    <div class="stats-divider"></div>
+
+    <div class="stats-period">
+      <div class="stats-period-label">Today</div>
+      <div class="stats-period-line"></div>
+    </div>
+    <div class="stats-row" id="todayRow">
+      <div class="stat-pill"><div class="stat-pill-val" id="todayFFR">0</div><div class="stat-pill-label">FFRs Scheduled</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="todayQuotes">0</div><div class="stat-pill-label">Quotes</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="todayPolicies">0</div><div class="stat-pill-label">Policies Bound</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="todayCompleted">0</div><div class="stat-pill-label">FFRs Conducted</div></div>
+    </div>
+
+    <div class="stats-period">
+      <div class="stats-period-label">This Week</div>
+      <div class="stats-period-line"></div>
+    </div>
+    <div class="stats-row week">
+      <div class="stat-pill"><div class="stat-pill-val" id="weekFFR">0</div><div class="stat-pill-label">FFRs Scheduled</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="weekQuotes">0</div><div class="stat-pill-label">Quotes</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="weekPolicies">0</div><div class="stat-pill-label">Policies Bound</div></div>
+      <div class="stat-pill"><div class="stat-pill-val" id="weekCompleted">0</div><div class="stat-pill-label">FFRs Conducted</div></div>
+    </div>
+  </div>
+
+  <div class="section-label">Today's schedule</div>
+
+  <!-- EMAILS -->
+  <div class="block" id="block-email">
+    <div class="block-header" onclick="toggleBlock('email')">
+      <div class="block-dot" style="background:var(--blue)"></div>
+      <div class="block-info"><div class="block-name">Emails</div><div class="block-time">9:30 am – 10:30 am</div></div>
+      <div class="block-badge" id="badge-email">not started</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="emailList"></div>
+      <button class="add-btn" onclick="addEmailItem()">+ add email / follow-up</button>
+      <button class="complete-btn" id="emailBtn" onclick="toggleDone('email')">Mark emails complete</button>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="block" id="block-alert">
+    <div class="block-header" onclick="toggleBlock('alert')">
+      <div class="block-dot" style="background:#f59e0b"></div>
+      <div class="block-info"><div class="block-name">Alerts</div><div class="block-time">10:30 am – 12:30 pm</div></div>
+      <div class="block-badge" id="badge-alert">not started</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="alertList"></div>
+      <button class="add-btn" onclick="addAlertItem()">+ add alert item</button>
+      <button class="complete-btn" id="alertBtn" onclick="toggleDone('alert')">Mark alerts done</button>
+    </div>
+  </div>
+
+  <!-- FFR SCHEDULING -->
+  <div class="block open" id="block-ffr">
+    <div class="block-header" onclick="toggleBlock('ffr')">
+      <div class="block-dot" style="background:var(--red)"></div>
+      <div class="block-info"><div class="block-name">FFR Scheduling</div><div class="block-time">12:30 pm – 4:15 pm</div></div>
+      <div class="block-badge" id="badge-ffr">0 scheduled</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="ffrSection"></div>
+    </div>
+  </div>
+
+  <!-- QUOTE POLICIES -->
+  <div class="block" id="block-quotes">
+    <div class="block-header" onclick="toggleBlock('quotes')">
+      <div class="block-dot" style="background:#8b5cf6"></div>
+      <div class="block-info"><div class="block-name">Quote Policies</div><div class="block-time">4:15 pm – 6:00 pm</div></div>
+      <div class="block-badge" id="badge-quotes">not started</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="quoteList"></div>
+      <button class="add-btn" onclick="addQuoteCard()">+ add quote</button>
+      <button class="complete-btn" id="quotesBtn" onclick="toggleDone('quotes')">Mark quotes done</button>
+    </div>
+  </div>
+
+  <div class="section-label">Tracking</div>
+
+  <!-- COMPLETED FFRs -->
+  <div class="block" id="block-completed">
+    <div class="block-header" onclick="toggleBlock('completed')">
+      <div class="block-dot" style="background:var(--green)"></div>
+      <div class="block-info"><div class="block-name">My Completed FFRs</div><div class="block-time">FFRs I personally conducted</div></div>
+      <div class="block-badge" id="badge-completed">0</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="completedList"></div>
+      <button class="add-btn" onclick="addCompletedFFR()">+ add completed FFR</button>
+    </div>
+  </div>
+
+  <!-- INCOMPLETE FFRs -->
+  <div class="block" id="block-incomplete">
+    <div class="block-header" onclick="toggleBlock('incomplete')">
+      <div class="block-dot" style="background:var(--red)"></div>
+      <div class="block-info"><div class="block-name">Incomplete FFRs</div><div class="block-time">Scheduled — couldn't reach client</div></div>
+      <div class="block-badge" id="badge-incomplete">0 clients</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div class="name-list" id="incompleteList"></div>
+      <button class="add-btn" onclick="addNameItem('incomplete')">+ add client</button>
+    </div>
+  </div>
+
+  <!-- FFR FOLLOW UPS -->
+  <div class="block" id="block-followups">
+    <div class="block-header" onclick="toggleBlock('followups')">
+      <div class="block-dot" style="background:var(--blue)"></div>
+      <div class="block-info"><div class="block-name">FFR Follow Ups</div><div class="block-time">Interested but not yet confirmed</div></div>
+      <div class="block-badge" id="badge-followups">0 clients</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div class="name-list" id="followupList"></div>
+      <button class="add-btn" onclick="addNameItem('followup')">+ add client</button>
+    </div>
+  </div>
+
+  <!-- POLICIES BOUND -->
+  <div class="block" id="block-policies">
+    <div class="block-header" onclick="toggleBlock('policies')">
+      <div class="block-dot" style="background:#0891b2"></div>
+      <div class="block-info"><div class="block-name">Policies Bound</div><div class="block-time">Policies sold today</div></div>
+      <div class="block-badge" id="badge-policies">0</div>
+      <svg class="chevron" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 7l4.5 4.5L13.5 7"/></svg>
+    </div>
+    <div class="block-body">
+      <div class="divider"></div>
+      <div id="policiesList"></div>
+      <button class="add-btn" onclick="addPolicyCard()">+ add policy</button>
+    </div>
+  </div>
+
+  <!-- WEEKLY REPORT HISTORY -->
+  <div class="section-label" style="margin-top:2rem;">Weekly Report History</div>
+  <div id="historySection"></div>
+
+  <!-- EXPORT BUTTON — BOTTOM -->
+  <button class="export-btn" onclick="exportReport()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg>
+    Export Today's Report
+  </button>
+
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const STORAGE_KEY='jono_tracker_v2';
+const HISTORY_KEY='jono_history_v2';
+
+let state={
+  blocksDone:{email:false,alert:false,quotes:false},
+  ffrs:{Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[]}
+};
+let history={};
+
+// ── SAVE / LOAD ───────────────────────────────────────
+function saveState(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(captureState()));
+}
+
+function captureState(){
+  const emails=[];
+  document.querySelectorAll('#emailList .email-item').forEach(el=>{
+    emails.push({text:el.querySelector('input').value,note:el.querySelector('textarea').value,done:el.querySelector('.chk').classList.contains('checked')});
+  });
+  const alerts=[];
+  document.querySelectorAll('#alertList .alert-row').forEach(el=>{
+    alerts.push({text:el.querySelector('input').value,done:el.querySelector('.chk').classList.contains('checked')});
+  });
+  const quotes=[];
+  document.querySelectorAll('#quoteList .quote-card').forEach(el=>{
+    const inps=el.querySelectorAll('input');
+    quotes.push({client:inps[0].value,sub:inps[1].value,notes:el.querySelector('textarea').value});
+  });
+  const completedFFRs=[];
+  document.querySelectorAll('#completedList .comp-card').forEach(el=>{
+    completedFFRs.push({client:el.querySelector('input').value,notes:el.querySelector('textarea').value});
+  });
+  const incompleteFFRs=[];
+  document.querySelectorAll('#incompleteList .name-row input').forEach(el=>incompleteFFRs.push(el.value));
+  const followups=[];
+  document.querySelectorAll('#followupList .name-row input').forEach(el=>followups.push(el.value));
+  const policies=[];
+  document.querySelectorAll('#policiesList .policy-card').forEach(el=>{
+    const inps=el.querySelectorAll('input');
+    policies.push({client:inps[0].value,type:inps[1].value});
+  });
+  return{blocksDone:state.blocksDone,ffrs:state.ffrs,emails,alerts,quotes,completedFFRs,incompleteFFRs,followups,policies,savedAt:new Date().toISOString()};
+}
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    state.blocksDone=s.blocksDone||state.blocksDone;
+    state.ffrs=s.ffrs||state.ffrs;
+    (s.emails||[]).forEach(e=>addEmailItem(e));
+    (s.alerts||[]).forEach(a=>addAlertItem(a));
+    (s.quotes||[]).forEach(q=>addQuoteCard(q));
+    (s.completedFFRs||[]).forEach(c=>addCompletedFFR(c));
+    (s.incompleteFFRs||[]).forEach(n=>addNameItem('incomplete',n));
+    (s.followups||[]).forEach(n=>addNameItem('followup',n));
+    (s.policies||[]).forEach(p=>addPolicyCard(p));
+    Object.keys(state.blocksDone).forEach(id=>{if(state.blocksDone[id])applyDone(id);});
+  }catch(e){console.warn(e);}
+}
+
+function loadHistory(){
+  try{const r=localStorage.getItem(HISTORY_KEY);if(r)history=JSON.parse(r);}catch(e){}
+}
+function saveHistory(){localStorage.setItem(HISTORY_KEY,JSON.stringify(history));}
+
+// ── MONDAY RESET ──────────────────────────────────────
+function checkMondayReset(){
+  const today=new Date();
+  const lastReset=localStorage.getItem('jono_last_reset_v2');
+  const todayStr=today.toISOString().split('T')[0];
+  if(today.getDay()===1&&lastReset!==todayStr){
+    const weekKey=getWeekKey(today);
+    const snap=captureState();
+    history[weekKey]={data:snap,saved:todayStr};
+    saveHistory();
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem('jono_last_reset_v2',todayStr);
+    state={blocksDone:{email:false,alert:false,quotes:false},ffrs:{Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[]}};
+    ['emailList','alertList','quoteList','completedList','incompleteList','followupList','policiesList'].forEach(id=>{document.getElementById(id).innerHTML='';});
+  }
+}
+
+function getWeekKey(date){
+  const d=new Date(date);d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return d.toISOString().split('T')[0];
+}
+function getWeekLabel(wk){
+  const d=new Date(wk+'T12:00:00');const end=new Date(d);end.setDate(end.getDate()+4);
+  const o={month:'short',day:'numeric'};
+  return`Week of ${d.toLocaleDateString('en-US',o)} – ${end.toLocaleDateString('en-US',o)}`;
+}
+
+// ── DATE ──────────────────────────────────────────────
+function getToday(){return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];}
+document.getElementById('navDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+// ── TOGGLE BLOCK ──────────────────────────────────────
+function toggleBlock(id){document.getElementById('block-'+id).classList.toggle('open');}
+
+// ── DONE ──────────────────────────────────────────────
+const doneLabels={email:'Mark emails complete',alert:'Mark alerts done',quotes:'Mark quotes done'};
+const doneTxt={email:'✓ Emails done — tap to undo',alert:'✓ Alerts done — tap to undo',quotes:'✓ Quotes done — tap to undo'};
+const btnIds={email:'emailBtn',alert:'alertBtn',quotes:'quotesBtn'};
+function toggleDone(id){state.blocksDone[id]=!state.blocksDone[id];applyDone(id);saveState();updateStats();}
+function applyDone(id){
+  const block=document.getElementById('block-'+id);
+  const btn=document.getElementById(btnIds[id]);
+  const badge=document.getElementById('badge-'+id);
+  if(state.blocksDone[id]){block.classList.add('done');btn.classList.add('is-done');btn.textContent=doneTxt[id];badge.textContent='✓ done';spawnConfetti(block);}
+  else{block.classList.remove('done');btn.classList.remove('is-done');btn.textContent=doneLabels[id];badge.textContent='not started';}
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function chkSVG(){return`<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5l3 3 6-6"/></svg>`;}
+function makeChk(onToggle){
+  const b=document.createElement('button');b.className='chk confetti-anchor';b.innerHTML=chkSVG();
+  b.addEventListener('click',()=>{b.classList.toggle('checked');if(b.classList.contains('checked'))spawnConfetti(b);if(onToggle)onToggle(b.classList.contains('checked'));saveState();});
+  return b;
+}
+function makeDelBtn(onDel){
+  const b=document.createElement('button');b.className='row-del';b.innerHTML='&times;';
+  b.addEventListener('click',()=>{onDel();saveState();updateStats();});return b;
+}
+
+// ── EMAIL ─────────────────────────────────────────────
+function addEmailItem(data){
+  const list=document.getElementById('emailList');
+  const wrap=document.createElement('div');wrap.className='email-item';
+  const top=document.createElement('div');top.className='email-top';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='Email / contact';
+  if(data)inp.value=data.text||'';inp.addEventListener('input',saveState);
+  const chk=makeChk(done=>{inp.style.textDecoration=done?'line-through':'';inp.style.color=done?'var(--muted)':'';});
+  if(data&&data.done){chk.classList.add('checked');inp.style.textDecoration='line-through';inp.style.color='var(--muted)';}
+  const del=makeDelBtn(()=>wrap.remove());
+  top.appendChild(inp);top.appendChild(chk);top.appendChild(del);
+  const note=document.createElement('textarea');note.className='email-note-inp';note.placeholder='Notes';note.rows=2;
+  if(data)note.value=data.note||'';note.addEventListener('input',saveState);
+  wrap.appendChild(top);wrap.appendChild(note);list.appendChild(wrap);
+}
+
+// ── ALERT ─────────────────────────────────────────────
+function addAlertItem(data){
+  const list=document.getElementById('alertList');
+  const row=document.createElement('div');row.className='alert-row';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='';
+  if(data)inp.value=data.text||'';inp.addEventListener('input',saveState);
+  const chk=makeChk(done=>inp.classList.toggle('done-input',done));
+  if(data&&data.done){chk.classList.add('checked');inp.classList.add('done-input');}
+  const del=makeDelBtn(()=>row.remove());
+  row.appendChild(inp);row.appendChild(chk);row.appendChild(del);list.appendChild(row);
+}
+
+// ── QUOTES ────────────────────────────────────────────
+function addQuoteCard(data){
+  const list=document.getElementById('quoteList');
+  const card=document.createElement('div');card.className='quote-card';
+  const top=document.createElement('div');top.className='quote-top';
+  const ni=document.createElement('input');ni.type='text';ni.placeholder='Client';
+  if(data)ni.value=data.client||'';ni.addEventListener('input',()=>{saveState();updateStats();});
+  const del=makeDelBtn(()=>{card.remove();updateStats();});
+  top.appendChild(ni);top.appendChild(del);
+  const sub=document.createElement('div');sub.className='quote-sub';
+  const subLabel=document.createElement('div');subLabel.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+  const subLabelTxt=document.createElement('span');subLabelTxt.textContent='Submission';subLabelTxt.style.cssText='font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;min-width:72px;';
+  const si=document.createElement('input');si.type='text';si.placeholder='Sub Number';
+  if(data)si.value=data.sub||'';si.addEventListener('input',saveState);
+  subLabel.appendChild(subLabelTxt);subLabel.appendChild(si);sub.appendChild(subLabel);
+  const notesWrap=document.createElement('div');notesWrap.style.cssText='display:flex;align-items:flex-start;gap:6px;';
+  const notesLabelTxt=document.createElement('span');notesLabelTxt.textContent='Notes';notesLabelTxt.style.cssText='font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;min-width:72px;padding-top:8px;';
+  const notes=document.createElement('textarea');notes.className='quote-notes';notes.placeholder='Notes';notes.rows=2;
+  if(data)notes.value=data.notes||'';notes.addEventListener('input',saveState);
+  notesWrap.appendChild(notesLabelTxt);notesWrap.appendChild(notes);
+  card.appendChild(top);card.appendChild(sub);card.appendChild(notesWrap);
+  list.appendChild(card);updateStats();
+}
+
+// ── FFR SCHEDULING ────────────────────────────────────
+function buildFFR(){
+  const section=document.getElementById('ffrSection');section.innerHTML='';
+  const today=getToday();
+  DAYS.forEach(day=>{
+    if(!state.ffrs[day])state.ffrs[day]=[];
+    const wrap=document.createElement('div');wrap.className='ffr-day-wrap'+(day===today?' open':'');wrap.id='ffr-wrap-'+day;
+    const hdr=document.createElement('div');hdr.className='ffr-day-hdr';
+    hdr.addEventListener('click',()=>wrap.classList.toggle('open'));
+    const left=document.createElement('div');left.className='ffr-day-left';
+    const nm=document.createElement('div');nm.className='ffr-day-name';nm.textContent=day;left.appendChild(nm);
+    if(day===today){const p=document.createElement('div');p.className='ffr-today-pill';p.textContent='today';left.appendChild(p);}
+    const right=document.createElement('div');right.className='ffr-day-right';
+    const cnt=document.createElement('div');cnt.className='ffr-day-count';cnt.id='ffr-count-'+day;cnt.textContent='0 scheduled';
+    const chev=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    chev.setAttribute('viewBox','0 0 15 15');chev.setAttribute('fill','none');chev.setAttribute('stroke','currentColor');chev.setAttribute('stroke-width','1.8');chev.classList.add('ffr-chev');
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M3 5.5l4.5 4.5L12 5.5');chev.appendChild(path);
+    right.appendChild(cnt);right.appendChild(chev);hdr.appendChild(left);hdr.appendChild(right);
+    const body=document.createElement('div');body.className='ffr-day-body';
+    const rows=document.createElement('div');rows.className='ffr-rows';rows.id='ffr-rows-'+day;
+    (state.ffrs[day]||[]).forEach(entry=>renderFFRRow(day,entry,rows));
+    const addB=document.createElement('button');addB.className='add-btn';addB.textContent='+ add FFR slot';
+    addB.addEventListener('click',()=>{const e={name:'',date:'',time:''};state.ffrs[day].push(e);renderFFRRow(day,e,rows);});
+    body.appendChild(rows);body.appendChild(addB);wrap.appendChild(hdr);wrap.appendChild(body);section.appendChild(wrap);
+    updateDayCount(day);
+  });
+}
+
+function renderFFRRow(day,entry,rowsEl){
+  const idx=rowsEl.querySelectorAll('.ffr-row').length;
+  const row=document.createElement('div');row.className='ffr-row';
+  const num=document.createElement('div');num.className='ffr-num';num.textContent=idx+1;
+  const fields=document.createElement('div');fields.className='ffr-fields';
+  const ni=document.createElement('input');ni.className='f-name';ni.placeholder='Client';ni.type='text';ni.value=entry.name||'';
+  const di=document.createElement('input');di.className='f-date';di.placeholder='Date';di.type='text';di.value=entry.date||'';
+  const ti=document.createElement('input');ti.className='f-time';ti.placeholder='Time';ti.type='text';ti.value=entry.time||'';
+  function check(){
+    entry.name=ni.value.trim();entry.date=di.value.trim();entry.time=ti.value.trim();
+    const ok=entry.name&&entry.date&&entry.time;
+    [ni,di,ti].forEach(el=>el.classList.toggle('complete',ok));
+    if(ok){row.style.transition='transform 0.18s';row.style.transform='scale(1.01)';setTimeout(()=>row.style.transform='',200);}
+    updateDayCount(day);saveState();updateStats();
+  }
+  ni.addEventListener('input',check);di.addEventListener('input',check);ti.addEventListener('input',check);
+  if(entry.name&&entry.date&&entry.time)[ni,di,ti].forEach(el=>el.classList.add('complete'));
+  const del=document.createElement('button');del.className='ffr-del';del.innerHTML='&times;';
+  del.addEventListener('click',()=>{
+    const i=state.ffrs[day].indexOf(entry);if(i>-1)state.ffrs[day].splice(i,1);
+    row.remove();rowsEl.querySelectorAll('.ffr-num').forEach((n,i)=>n.textContent=i+1);
+    updateDayCount(day);saveState();updateStats();
+  });
+  fields.appendChild(ni);fields.appendChild(di);fields.appendChild(ti);
+  row.appendChild(num);row.appendChild(fields);row.appendChild(del);rowsEl.appendChild(row);
+  updateDayCount(day);updateStats();
+}
+
+function updateDayCount(day){
+  const done=state.ffrs[day].filter(f=>f.name&&f.date&&f.time).length;
+  const c=document.getElementById('ffr-count-'+day);if(c)c.textContent=done+' scheduled';
+}
+
+// ── NAME LISTS ────────────────────────────────────────
+function addNameItem(type,val){
+  const listId=type==='incomplete'?'incompleteList':'followupList';
+  const badgeId=type==='incomplete'?'badge-incomplete':'badge-followups';
+  const list=document.getElementById(listId);
+  const row=document.createElement('div');row.className='name-row';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='Client';
+  if(val)inp.value=val;inp.addEventListener('input',saveState);
+  const del=makeDelBtn(()=>{row.remove();updateNameBadge(listId,badgeId);});
+  row.appendChild(inp);row.appendChild(del);list.appendChild(row);
+  updateNameBadge(listId,badgeId);
+}
+function updateNameBadge(listId,badgeId){
+  const n=document.getElementById(listId).querySelectorAll('.name-row').length;
+  document.getElementById(badgeId).textContent=n+' client'+(n===1?'':'s');
+}
+
+// ── COMPLETED FFRs ────────────────────────────────────
+function addCompletedFFR(data){
+  const list=document.getElementById('completedList');
+  const card=document.createElement('div');card.className='comp-card';
+  const top=document.createElement('div');top.className='comp-top';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='Client';
+  if(data)inp.value=data.client||'';inp.addEventListener('input',()=>{saveState();updateStats();});
+  const del=makeDelBtn(()=>{card.remove();updateCompBadge();updateStats();});
+  top.appendChild(inp);top.appendChild(del);
+  const notes=document.createElement('textarea');notes.className='comp-notes';notes.placeholder='Notes — what was discussed';
+  if(data)notes.value=data.notes||'';notes.addEventListener('input',saveState);
+  card.appendChild(top);card.appendChild(notes);list.appendChild(card);
+  updateCompBadge();updateStats();
+}
+function updateCompBadge(){
+  const n=document.getElementById('completedList').querySelectorAll('.comp-card').length;
+  document.getElementById('badge-completed').textContent=n;
+}
+
+// ── POLICIES BOUND ────────────────────────────────────
+function addPolicyCard(data){
+  const list=document.getElementById('policiesList');
+  const card=document.createElement('div');card.className='policy-card';
+  const top=document.createElement('div');top.className='policy-top';
+  const ni=document.createElement('input');ni.type='text';ni.placeholder='Client';
+  if(data)ni.value=data.client||'';ni.addEventListener('input',()=>{saveState();updateStats();});
+  const del=makeDelBtn(()=>{card.remove();updatePolicyBadge();updateStats();});
+  top.appendChild(ni);top.appendChild(del);
+  const ti=document.createElement('input');ti.className='policy-type';ti.placeholder='Policy type (e.g. Auto, Home)';
+  if(data)ti.value=data.type||'';ti.addEventListener('input',saveState);
+  card.appendChild(top);card.appendChild(ti);list.appendChild(card);
+  updatePolicyBadge();updateStats();
+}
+function updatePolicyBadge(){
+  const n=document.getElementById('policiesList').querySelectorAll('.policy-card').length;
+  document.getElementById('badge-policies').textContent=n;
+}
+
+// ── STATS + RING ──────────────────────────────────────
+function updateStats(){
+  const today=getToday();
+  const todayFFR=state.ffrs[today].filter(f=>f.name&&f.date&&f.time).length;
+  const weekFFR=DAYS.reduce((s,d)=>s+(state.ffrs[d]||[]).filter(f=>f.name&&f.date&&f.time).length,0);
+  const todayQuotes=document.querySelectorAll('#quoteList .quote-card').length;
+  const todayPolicies=document.querySelectorAll('#policiesList .policy-card').length;
+  const todayCompleted=document.querySelectorAll('#completedList .comp-card').length;
+
+  document.getElementById('todayFFR').textContent=todayFFR;
+  document.getElementById('todayQuotes').textContent=todayQuotes;
+  document.getElementById('todayPolicies').textContent=todayPolicies;
+  document.getElementById('todayCompleted').textContent=todayCompleted;
+
+  const weekKey=getWeekKey(new Date());
+  const hist=history[weekKey]&&history[weekKey].data;
+  document.getElementById('weekFFR').textContent=weekFFR;
+  document.getElementById('weekQuotes').textContent=todayQuotes+(hist?(hist.quotes||[]).length:0);
+  document.getElementById('weekPolicies').textContent=todayPolicies+(hist?(hist.policies||[]).length:0);
+  document.getElementById('weekCompleted').textContent=todayCompleted+(hist?(hist.completedFFRs||[]).length:0);
+
+  // FFR badge
+  document.getElementById('badge-ffr').textContent=todayFFR+' scheduled';
+  if(todayFFR>=10){document.getElementById('block-ffr').classList.add('done');document.getElementById('badge-ffr').textContent='✓ '+todayFFR+' done!';}
+  else{document.getElementById('block-ffr').classList.remove('done');}
+
+  // Score ring — weighted: FFRs 50%, quotes 20%, policies 15%, conducted 15%
+  const ffrScore=Math.min(todayFFR/10,1)*80;
+  const emailScore=(state.blocksDone.email?1:0)*5;
+  const alertScore=(state.blocksDone.alert?1:0)*15;
+  const score=Math.round(ffrScore+emailScore+alertScore);
+  document.getElementById('ringPct').textContent=score+'%';
+  const offset=201-(score/100)*201;
+  const fill=document.getElementById('ringFill');
+  fill.style.strokeDashoffset=offset;
+  fill.style.stroke=score>=80?'#22a55e':score>=50?'#d97706':'#CC0000';
+}
+
+// ── HISTORY UI ────────────────────────────────────────
+function buildHistory(){
+  const section=document.getElementById('historySection');section.innerHTML='';
+  const weeks=Object.keys(history).sort((a,b)=>b.localeCompare(a));
+  if(!weeks.length){
+    const p=document.createElement('p');p.className='no-history';
+    p.textContent='No archived reports yet. Reports save automatically every Monday.';
+    section.appendChild(p);return;
+  }
+  const byMonth={};
+  weeks.forEach(wk=>{
+    const d=new Date(wk+'T12:00:00');
+    const mk=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    if(!byMonth[mk])byMonth[mk]=[];byMonth[mk].push(wk);
+  });
+  Object.keys(byMonth).forEach(month=>{
+    const mb=document.createElement('div');mb.className='month-block';
+    const mh=document.createElement('div');mh.className='month-header';
+    mh.innerHTML=`<h3>${month}</h3><svg class="month-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>`;
+    mh.addEventListener('click',()=>mb.classList.toggle('open'));
+    const mbody=document.createElement('div');mbody.className='month-body';
+    byMonth[month].forEach(wk=>{
+      const d=history[wk]&&history[wk].data;
+      const ffrC=d?DAYS.reduce((s,dy)=>s+(d.ffrs&&d.ffrs[dy]?d.ffrs[dy].filter(f=>f.name&&f.date&&f.time).length:0),0):0;
+      const qC=d?(d.quotes||[]).length:0;const pC=d?(d.policies||[]).length:0;const cC=d?(d.completedFFRs||[]).length:0;
+      const we=document.createElement('div');we.className='week-entry';
+      we.innerHTML=`<div><div class="week-entry-label">${getWeekLabel(wk)}</div><div class="week-entry-stats">FFRs: ${ffrC} &nbsp;·&nbsp; Quotes: ${qC} &nbsp;·&nbsp; Policies: ${pC} &nbsp;·&nbsp; Conducted: ${cC}</div></div><div class="week-entry-arrow">›</div>`;
+      we.addEventListener('click',()=>openHistoryModal(wk));
+      mbody.appendChild(we);
+    });
+    mb.appendChild(mh);mb.appendChild(mbody);section.appendChild(mb);
+  });
+}
+
+function openHistoryModal(weekKey){
+  const d=history[weekKey]&&history[weekKey].data;if(!d)return;
+  const ffrC=DAYS.reduce((s,dy)=>s+(d.ffrs&&d.ffrs[dy]?d.ffrs[dy].filter(f=>f.name&&f.date&&f.time).length:0),0);
+  let html=`<div class="modal-header"><h2>${getWeekLabel(weekKey)}</h2><button class="modal-close" onclick="document.getElementById('modalOverlay').style.display='none'">&times;</button></div>`;
+  html+=`<div class="report-section"><h3>Summary</h3><div class="report-stat-row">`;
+  html+=`<div class="report-stat"><div class="report-stat-label">FFRs Scheduled</div><div class="report-stat-val">${ffrC}</div></div>`;
+  html+=`<div class="report-stat"><div class="report-stat-label">Quotes</div><div class="report-stat-val">${(d.quotes||[]).length}</div></div>`;
+  html+=`<div class="report-stat"><div class="report-stat-label">Policies Bound</div><div class="report-stat-val">${(d.policies||[]).length}</div></div>`;
+  html+=`<div class="report-stat"><div class="report-stat-label">FFRs Conducted</div><div class="report-stat-val">${(d.completedFFRs||[]).length}</div></div>`;
+  html+=`</div></div>`;
+  html+=`<div class="report-section"><h3>FFR Scheduling</h3>`;
+  DAYS.forEach(dy=>{
+    const slots=(d.ffrs&&d.ffrs[dy]||[]).filter(f=>f.name&&f.date&&f.time);
+    if(slots.length){html+=`<div style="font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.6px;margin:8px 0 4px;">${dy}</div>`;slots.forEach(s=>{html+=`<div class="report-item">${s.name}<div class="sub">${s.date} at ${s.time}</div></div>`;});}
+  });
+  html+=`</div>`;
+  if((d.completedFFRs||[]).length){html+=`<div class="report-section"><h3>Completed FFRs</h3>`;d.completedFFRs.forEach(c=>{html+=`<div class="report-item">${c.client}<div class="sub">${c.notes||'No notes'}</div></div>`;});html+=`</div>`;}
+  if((d.quotes||[]).length){html+=`<div class="report-section"><h3>Quotes</h3>`;d.quotes.forEach(q=>{html+=`<div class="report-item">${q.client}<div class="sub">Sub: ${q.sub||'—'} · ${q.notes||''}</div></div>`;});html+=`</div>`;}
+  if((d.policies||[]).length){html+=`<div class="report-section"><h3>Policies Bound</h3>`;d.policies.forEach(p=>{html+=`<div class="report-item">${p.client}<div class="sub">${p.type||'—'}</div></div>`;});html+=`</div>`;}
+  document.getElementById('modalContent').innerHTML=html;
+  document.getElementById('modalOverlay').style.display='flex';
+}
+
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))document.getElementById('modalOverlay').style.display='none';}
+
+// ── EXPORT ────────────────────────────────────────────
+function exportReport(){
+  const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const todayFFR=state.ffrs[getToday()].filter(f=>f.name&&f.date&&f.time).length;
+  const todayQ=document.querySelectorAll('#quoteList .quote-card').length;
+  const todayP=document.querySelectorAll('#policiesList .policy-card').length;
+  const todayC=document.querySelectorAll('#completedList .comp-card').length;
+  let ffrRows='';
+  DAYS.forEach(dy=>{
+    const slots=(state.ffrs[dy]||[]).filter(f=>f.name&&f.date&&f.time);
+    if(slots.length){ffrRows+=`<tr><td colspan="3" style="background:#eef2fb;font-weight:600;color:#003DA5;padding:6px 10px;font-size:11px;text-transform:uppercase;">${dy}</td></tr>`;slots.forEach((s,i)=>{ffrRows+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${i+1}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.name}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${s.date} at ${s.time}</td></tr>`;});}
+  });
+  let compRows='';document.querySelectorAll('#completedList .comp-card').forEach(c=>{compRows+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:500;">${c.querySelector('input').value}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;color:#6b7280;">${c.querySelector('textarea').value||'—'}</td></tr>`;});
+  let qRows='';document.querySelectorAll('#quoteList .quote-card').forEach(c=>{const inps=c.querySelectorAll('input');qRows+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${inps[0].value}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${inps[1].value||'—'}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;color:#6b7280;">${c.querySelector('textarea').value||'—'}</td></tr>`;});
+  let pRows='';document.querySelectorAll('#policiesList .policy-card').forEach(c=>{const inps=c.querySelectorAll('input');pRows+=`<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${inps[0].value}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;">${inps[1].value||'—'}</td></tr>`;});
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daily Report — ${today}</title>
+  <style>body{font-family:system-ui,sans-serif;background:#f4f5f8;color:#1a1a1a;margin:0;padding:2rem;}.wrap{max-width:700px;margin:0 auto;}
+  .header{background:#003DA5;color:#fff;padding:1.25rem 1.5rem;border-radius:12px;display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;}
+  .stripe{width:5px;height:40px;background:#CC0000;border-radius:3px;}.htitle{font-size:18px;font-weight:700;}.hsub{font-size:12px;opacity:0.75;margin-top:2px;}
+  .hdate{font-size:12px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;margin-left:auto;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem;}
+  .stat{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+  .sl{font-size:11px;color:#6b7280;margin-bottom:3px;}.sv{font-size:24px;font-weight:600;color:#003DA5;}
+  .sec{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:1rem;overflow:hidden;}
+  .st{background:#003DA5;color:#fff;padding:8px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}</style></head>
+  <body><div class="wrap">
+  <div class="header"><div class="stripe"></div><div><div class="htitle">Jonathan's Daily Report</div><div class="hsub">Esam Boktor Insurance Agency</div></div><div class="hdate">${today}</div></div>
+  <div class="stats">
+  <div class="stat"><div class="sl">FFRs Scheduled</div><div class="sv">${todayFFR}</div></div>
+  <div class="stat"><div class="sl">Quotes</div><div class="sv">${todayQ}</div></div>
+  <div class="stat"><div class="sl">Policies Bound</div><div class="sv">${todayP}</div></div>
+  <div class="stat"><div class="sl">FFRs Conducted</div><div class="sv">${todayC}</div></div>
+  </div>
+  ${ffrRows?`<div class="sec"><div class="st">FFR Scheduling</div><table>${ffrRows}</table></div>`:''}
+  ${compRows?`<div class="sec"><div class="st">Completed FFRs</div><table><tr><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Client</th><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Notes</th></tr>${compRows}</table></div>`:''}
+  ${qRows?`<div class="sec"><div class="st">Quote Policies</div><table><tr><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Client</th><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Sub Number</th><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Notes</th></tr>${qRows}</table></div>`:''}
+  ${pRows?`<div class="sec"><div class="st">Policies Bound</div><table><tr><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Client</th><th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280;">Policy Type</th></tr>${pRows}</table></div>`:''}
+  </div></body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`report-${new Date().toISOString().split('T')[0]}.html`;a.click();URL.revokeObjectURL(a.href);
+}
+
+// ── CONFETTI ──────────────────────────────────────────
+function spawnConfetti(parent){
+  const colors=['#22a55e','#CC0000','#003DA5','#f59e0b','#8b5cf6'];
+  for(let i=0;i<10;i++){
+    const dot=document.createElement('div');dot.className='c-dot';dot.style.background=colors[i%colors.length];
+    const angle=(i/10)*360;const r=36+Math.random()*18;
+    const tx=Math.cos(angle*Math.PI/180)*r;const ty=Math.sin(angle*Math.PI/180)*r;
+    dot.style.transition='transform 0.55s ease,opacity 0.55s ease';parent.appendChild(dot);
+    requestAnimationFrame(()=>{dot.style.opacity='1';dot.style.transform=`translate(${tx}px,${ty}px) scale(0.9)`;
+      setTimeout(()=>{dot.style.opacity='0';dot.style.transform=`translate(${tx*1.6}px,${ty*1.6+14}px) scale(0)`;setTimeout(()=>dot.remove(),620);},80);});
+  }
+  parent.classList.add('popping');setTimeout(()=>parent.classList.remove('popping'),420);
+}
+
+// ── INIT ──────────────────────────────────────────────
+loadHistory();
+checkMondayReset();
+// Load saved ffrs into state BEFORE building FFR UI so slots render correctly
+try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const s=JSON.parse(raw);if(s.ffrs)state.ffrs=s.ffrs;}}catch(e){}
+buildFFR();
+loadState();
+updateStats();
+buildHistory();
+setInterval(saveState,30000);
+</script>
+</body>
+</html>
