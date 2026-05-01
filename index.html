@@ -45,13 +45,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 /* QUICK ADD */
 .quick-bar{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;border:1.5px solid var(--blue-mid);}
-.quick-bar-label{font-size:11px;font-weight:700;color:#fff;background:var(--blue);padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:0.5px;}
-.quick-inp{border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;}
+.quick-bar-label{font-size:11px;font-weight:700;color:#fff;background:var(--blue);padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:0.5px;flex-shrink:0;}
+.quick-inp{border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;flex:1;min-width:0;}
 .quick-inp:focus{border-color:var(--blue);}
-.quick-name{flex:2;min-width:0;}
-.quick-date{width:90px;}
-.quick-time{width:75px;}
-.quick-day{width:110px;cursor:pointer;}
+.quick-name{flex:1;}
+.quick-date{flex:1;}
+.quick-time{flex:1;}
+.quick-day{flex:1;cursor:pointer;}
 .quick-btn{background:linear-gradient(135deg,var(--red),#e05555);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .quick-btn:hover{opacity:0.88;}
 html.dark .quick-bar{background:var(--surface);border-color:rgba(255,255,255,0.15);}
@@ -450,9 +450,9 @@ html.dark .n-card input{color:#ececec;}
   <!-- QUICK ADD -->
   <div class="quick-bar">
     <span class="quick-bar-label">Quick Add FFR</span>
-    <input id="qName" class="quick-inp quick-name" type="text" placeholder="Client" onkeydown="if(event.key==='Enter')quickAdd()">
-    <input id="qDate" class="quick-inp quick-date" type="text" placeholder="Date" onkeydown="if(event.key==='Enter')quickAdd()">
-    <input id="qTime" class="quick-inp quick-time" type="text" placeholder="Time" onkeydown="if(event.key==='Enter')quickAdd()">
+    <input id="qName" class="quick-inp quick-name" type="text" placeholder="Client" onkeydown="if(event.key==='Enter'){event.preventDefault();$('qDate').focus();}">
+    <input id="qDate" class="quick-inp quick-date" type="text" placeholder="Date" onkeydown="if(event.key==='Enter'){event.preventDefault();$('qTime').focus();}">
+    <input id="qTime" class="quick-inp quick-time" type="text" placeholder="Time" onkeydown="if(event.key==='Enter'){event.preventDefault();quickAdd();}">
     <select id="qDay" class="quick-inp quick-day"></select>
     <button class="quick-btn" onclick="quickAdd()">+ Add</button>
   </div>
@@ -1096,12 +1096,26 @@ function renderFFRRow(day,entry,rowsEl){
   ni.addEventListener('input',sync);di.addEventListener('input',sync);ti.addEventListener('input',sync);
 
   // Tab nav
-  ni.addEventListener('keydown',e=>{if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();isOTS(ni.value)?otsInp.focus():di.focus();}});
-  di.addEventListener('keydown',e=>{if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();ti.focus();}});
+  ni.addEventListener('keydown',e=>{
+    if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();isOTS(ni.value)?otsInp.focus():di.focus();}
+    else if(e.key==='Enter'){e.preventDefault();isOTS(ni.value)?otsInp.focus():di.focus();}
+  });
+  di.addEventListener('keydown',e=>{
+    if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();ti.focus();}
+    else if(e.key==='Enter'){e.preventDefault();ti.focus();}
+  });
   ti.addEventListener('keydown',e=>{
-    if(e.key==='Tab'&&!e.shiftKey){e.preventDefault();
+    if(e.key==='Tab'&&!e.shiftKey||e.key==='Enter'){
+      e.preventDefault();
+      ti.value=fmtTime(ti.value);di.value=fmtDate(di.value);
+      sync();ti.blur();
+      // Move to next row's client field
       const all=rowsEl.querySelectorAll('.ffr-row');const idx=Array.from(all).indexOf(row);
-      const next=all[idx+1];if(next)next.querySelector('.f-name').focus();else ni.focus();}
+      const next=all[idx+1];if(next)next.querySelector('.f-name').focus();
+    }
+  });
+  otsInp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();otsInp.blur();}
   });
 
   // Load saved OTS state
